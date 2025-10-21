@@ -3,73 +3,352 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cookie Puncher — cookiepuncher.fun</title>
+  <title>Cookie Puncher (Prototype)</title>
   <style>
-    body {
-      background: linear-gradient(180deg, #0b1020 0%, #151a30 100%);
-      color: #fff;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1724;
+      --accent:#ffc857;
+      --muted:#94a3b8;
+      color-scheme: dark;
     }
-    .container {
-      text-align: center;
-      background: rgba(255,255,255,0.05);
-      padding: 20px 30px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-    h1 {
-      font-size: 2.5rem;
-      color: #ffc857;
-    }
-    p {
-      color: #a0aec0;
-      margin-top: 10px;
-      font-size: 1rem;
-    }
-    a.button {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 10px 18px;
-      background: linear-gradient(90deg, #ffc857, #ff9e57);
-      color: #000;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: transform 0.2s;
-    }
-    a.button:hover {
-      transform: scale(1.05);
-    }
-    iframe {
-      width: 800px;
-      height: 600px;
-      border: none;
-      margin-top: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.4);
-    }
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Segoe,-apple-system,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071022 0%, #0b1530 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+    .wrap{width:980px;max-width:100%;display:grid;grid-template-columns:420px 1fr;gap:18px}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+
+    .left{display:flex;flex-direction:column;gap:12px;align-items:center}
+    canvas#cookie{width:360px;height:360px;background:transparent;image-rendering:pixelated;border-radius:10px;cursor:pointer;}
+    #crumbs{font-size:20px;font-weight:700;color:var(--accent);}
+    .meter{width:100%;background:rgba(255,255,255,0.03);height:12px;border-radius:8px;overflow:hidden}
+    .meter > i{display:block;height:100%;background:linear-gradient(90deg,#ffde8a,#ffc857);width:0%}
+
+    .shop{display:grid;gap:10px}
+    .shop .item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)}
+    button, .btn{background:linear-gradient(180deg,#1b2434,#111827);border:1px solid rgba(255,255,255,0.04);color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+
+    .right{display:flex;flex-direction:column;gap:12px}
+    h2{margin:0;color:#e6eef8}
+    p.muted{color:var(--muted);margin:6px 0 0}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .stat{padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)}
+    footer{font-size:12px;color:var(--muted);text-align:center;margin-top:12px}
+
+    .tiny{font-size:12px;color:var(--muted)}
+    #siteRow{display:flex;gap:8px;align-items:center;margin-top:6px}
+    #siteLink{color:var(--accent);font-weight:700;text-decoration:none}
+
+    @media(max-width:900px){.wrap{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🍪 Cookie Puncher</h1>
-    <p>Welcome to <strong>cookiepuncher.fun</strong> — the ultimate cookie-smashing clicker game!</p>
-    <a href="#" class="button" onclick="toggleGame()">Play Prototype</a>
-    <div id="gameContainer" style="display:none;">
-      <iframe src="cookie_puncher_game.html" title="Cookie Puncher Game"></iframe>
+  <div class="wrap">
+    <div class="card left">
+      <canvas id="cookie" width="320" height="320" title="Click to punch!" ></canvas>
+      <div id="crumbs">Crumbs: 0</div>
+      <div class="meter"><i id="hpbar" style="width:100%"></i></div>
+      <div class="tiny">Cookie Health: <span id="hptext">100%</span></div>
+    </div>
+
+    <div class="card right">
+      <h2 id="title">Cookie Puncher</h2>
+      <p class="muted">Click (or press Space) to punch the cookie. Spend crumbs on upgrades. Pixel art style. Saves automatically.</p>
+
+      <div class="stats">
+        <div class="stat">Punch Power: <b id="power">1</b></div>
+        <div class="stat">Auto Punch per sec: <b id="autoproc">0</b></div>
+        <div class="stat">Total Clicks: <b id="clicks">0</b></div>
+        <div class="stat">Cookies Defeated: <b id="defeated">0</b></div>
+      </div>
+
+      <div id="siteRow">Website: <a id="siteLink" href="#" target="_blank">https://cookie-puncher.gg</a> <button id="editSite" class="tiny">Edit</button></div>
+
+      <h3 style="margin-top:10px">Shop</h3>
+      <div class="shop" id="shop"></div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="save">Save</button>
+        <button id="reset">Reset</button>
+        <div style="flex:1"></div>
+        <div class="tiny">v0.3 prototype</div>
+      </div>
+      <footer>Made with ❤️ — Suggestions? Say what to add next!</footer>
     </div>
   </div>
 
-  <script>
-    function toggleGame() {
-      const gameContainer = document.getElementById('gameContainer');
-      gameContainer.style.display = gameContainer.style.display === 'none' ? 'block' : 'none';
+<script>
+const cookieCanvas = document.getElementById('cookie');
+const ctx = cookieCanvas.getContext('2d');
+const pxSize = 32;
+const off = document.createElement('canvas');
+off.width = pxSize; off.height = pxSize;
+const octx = off.getContext('2d');
+octx.imageSmoothingEnabled = false;
+
+const DEFAULT_SHOP = {
+  glove: {cost: 12, level:0, desc: '+1 power'},
+  auto: {cost: 50, level:0, desc: '+0.5 auto/sec'},
+  oven: {cost: 120, level:0, desc: '+20% cookie HP (harder boss)'},
+  megaAuto: {cost: 400, level:0, desc: 'Punches 10x every 5s'}
+};
+
+let state = {
+  crumbs: 0,
+  power: 1,
+  auto: 0,
+  clicks: 0,
+  defeated: 0,
+  cookieHP: 100,
+  cookieMaxHP: 100,
+  round: 1,
+  shop: JSON.parse(JSON.stringify(DEFAULT_SHOP)),
+  megaTimer: 0,
+  siteName: 'cookie-puncher.gg'
+};
+
+const crumbsEl = document.getElementById('crumbs');
+const powerEl = document.getElementById('power');
+const autoEl = document.getElementById('autoproc');
+const clicksEl = document.getElementById('clicks');
+const defeatedEl = document.getElementById('defeated');
+const hpbar = document.getElementById('hpbar');
+const hptext = document.getElementById('hptext');
+const shopEl = document.getElementById('shop');
+const siteLink = document.getElementById('siteLink');
+const editSite = document.getElementById('editSite');
+const titleEl = document.getElementById('title');
+
+function drawPixelCookie(){
+  octx.clearRect(0,0,pxSize,pxSize);
+  for(let y=0;y<pxSize;y++){
+    for(let x=0;x<pxSize;x++){
+      const cx = pxSize/2, cy = pxSize/2, r = pxSize*0.43;
+      const d = Math.hypot(x-cx+0.2,y-cy+0.2);
+      if(d < r){
+        let col = '#ddb07a';
+        if(d > r-1.5) col = '#c99a59';
+        octx.fillStyle = col;
+        octx.fillRect(x,y,1,1);
+      }
     }
-  </script>
+  }
+  const chips = [[10,9],[16,8],[22,12],[12,18],[20,20],[8,20]];
+  chips.forEach(([cx,cy])=>{
+    const colors = ['#6b3f2b','#5a321f'];
+    colors.forEach((c,idx)=>{
+      octx.fillStyle = c;
+      octx.fillRect(cx+idx,cy,1,1);
+      octx.fillRect(cx,cy+idx,1,1);
+    });
+  });
+}
+
+function render(){
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0,0,cookieCanvas.width,cookieCanvas.height);
+  const g = ctx.createRadialGradient(160,160,10,160,160,220);
+  g.addColorStop(0,'rgba(255,210,120,0.12)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,cookieCanvas.width,cookieCanvas.height);
+  ctx.drawImage(off,0,0,pxSize,pxSize,16,16,288,288);
+}
+
+let shake = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  render();
+  if(shake>0){
+    shake -= 0.8;
+    cookieCanvas.style.transform = `translate(${(Math.random()-0.5)*shake}px, ${(Math.random()-0.5)*shake}px) rotate(${(Math.random()-0.5)*shake*0.02}deg)`;
+  } else cookieCanvas.style.transform = '';
+}
+
+function punch(){
+  const dmg = state.power;
+  state.cookieHP -= dmg;
+  state.crumbs += Math.max(0, Math.floor(dmg*0.5));
+  state.clicks += 1;
+  shake = 8;
+  updateUI();
+  checkCookieDefeated();
+}
+
+function checkCookieDefeated(){
+  if(state.cookieHP <= 0){
+    state.defeated += 1;
+    state.crumbs += Math.floor(state.cookieMaxHP * 0.2);
+    state.round += 1;
+    const ovenLevel = (state.shop && state.shop.oven && state.shop.oven.level) ? state.shop.oven.level : 0;
+    const scale = 1 + 0.15*state.round + (ovenLevel * 0.2);
+    state.cookieMaxHP = Math.floor(100 * Math.pow(1.4, state.round-1) * scale);
+    state.cookieHP = state.cookieMaxHP;
+    updateUI();
+    save();
+  }
+}
+
+let lastAutoTime = performance.now();
+function autoTick(now){
+  const elapsed = (now - lastAutoTime)/1000;
+  if(elapsed >= 0.2){
+    const amount = state.auto * elapsed;
+    if(amount >= 0.0001){
+      const whole = Math.floor(amount);
+      const frac = amount - whole;
+      for(let i=0;i<whole;i++){
+        state.cookieHP -= state.power;
+        state.crumbs += Math.max(0, Math.floor(state.power*0.5));
+        state.clicks += 1;
+      }
+      state.cookieHP -= frac * state.power;
+      state.crumbs += Math.max(0, Math.floor(frac * state.power * 0.5));
+      updateUI();
+      checkCookieDefeated();
+    }
+    lastAutoTime = now;
+  }
+
+  const megaLevel = (state.shop && state.shop.megaAuto && state.shop.megaAuto.level) ? state.shop.megaAuto.level : 0;
+  if(megaLevel > 0){
+    state.megaTimer += elapsed;
+    if(state.megaTimer >= 5){
+      const hits = 10 * megaLevel;
+      rawMegaPunch(hits);
+      state.megaTimer = 0;
+    }
+  }
+
+  requestAnimationFrame(autoTick);
+}
+
+function rawMegaPunch(hits){
+  const totalDmg = hits * state.power;
+  state.cookieHP -= totalDmg;
+  state.crumbs += Math.max(0, Math.floor(totalDmg * 0.5));
+  state.clicks += hits;
+  shake = Math.max(shake, 6);
+  updateUI();
+  checkCookieDefeated();
+}
+
+function buildShop(){
+  if(!state.shop) state.shop = JSON.parse(JSON.stringify(DEFAULT_SHOP));
+  Object.keys(DEFAULT_SHOP).forEach(k => {
+    if(!state.shop[k]) state.shop[k] = JSON.parse(JSON.stringify(DEFAULT_SHOP[k]));
+  });
+
+  shopEl.innerHTML = '';
+  Object.entries(state.shop).forEach(([key,item])=>{
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `<div style="min-width:0">
+        <div style="font-weight:700;text-transform:capitalize">${key}</div>
+        <div class="tiny">${item.desc} (Lv ${item.level})</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="tiny">${item.cost} cr</div>
+        <button data-buy="${key}">Buy</button>
+      </div>`;
+    shopEl.appendChild(div);
+  });
+  shopEl.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    buyItem(b.getAttribute('data-buy'));
+  }));
+}
+
+function buyItem(key){
+  const item = state.shop[key];
+  if(!item) return; // safety
+  if(state.crumbs < item.cost) return;
+  state.crumbs -= item.cost;
+  item.level += 1;
+  item.cost = Math.floor(item.cost * 1.8) + 6;
+
+  if(key === 'glove'){
+    state.power += 1;
+  } else if(key === 'auto'){
+    state.auto += 0.5;
+  } else if(key === 'oven'){
+    state.cookieMaxHP = Math.floor(state.cookieMaxHP * 1.2);
+    state.cookieHP = Math.min(state.cookieHP, state.cookieMaxHP);
+  } else if(key === 'megaAuto'){
+    state.megaTimer = 0;
+    rawMegaPunch(10 * Math.max(1, item.level));
+  }
+
+  updateUI();
+  buildShop();
+  save();
+}
+
+function updateUI(){
+  crumbsEl.textContent = `Crumbs: ${Math.floor(state.crumbs)}`;
+  powerEl.textContent = state.power.toFixed(1);
+  autoEl.textContent = (state.auto).toFixed(2);
+  clicksEl.textContent = state.clicks;
+  defeatedEl.textContent = state.defeated;
+  const pct = Math.max(0, Math.min(1, state.cookieHP / state.cookieMaxHP));
+  hpbar.style.width = `${pct*100}%`;
+  hptext.textContent = `${Math.floor(pct*100)}%`;
+
+  // update site link and title
+  siteLink.href = `https://${state.siteName.replace(/https?:\/\//,'')}`;
+  siteLink.textContent = siteLink.href;
+  document.title = `${state.siteName} — Cookie Puncher`;
+  titleEl.textContent = `Cookie Puncher — ${state.siteName}`;
+}
+
+function save(){
+  try{
+    localStorage.setItem('cookie_puncher_v1', JSON.stringify(state));
+  }catch(e){console.warn('save failed',e)}
+}
+
+function load(){
+  const s = localStorage.getItem('cookie_puncher_v1');
+  if(!s) return;
+  try{
+    const parsed = JSON.parse(s);
+    Object.keys(parsed).forEach(k => {
+      if(k === 'shop') return;
+      state[k] = parsed[k];
+    });
+    if(parsed.shop) state.shop = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SHOP)), parsed.shop);
+  }catch(e){console.warn('failed load',e)}
+}
+
+cookieCanvas.addEventListener('click', ()=> punch());
+window.addEventListener('keydown',(e)=>{if(e.code==='Space'){e.preventDefault();punch();}});
+
+document.getElementById('save').addEventListener('click', save);
+document.getElementById('reset').addEventListener('click', ()=>{if(confirm('Reset your save?')){localStorage.removeItem('cookie_puncher_v1');location.reload();}});
+
+// edit site name
+editSite.addEventListener('click', ()=>{
+  const input = prompt('Enter a website name (e.g. myname.github.io or cookie-puncher.gg)', state.siteName || 'cookie-puncher.gg');
+  if(!input) return;
+  // sanitize a bit
+  const cleaned = input.trim().replace(/^https?:\/\//,'');
+  state.siteName = cleaned;
+  updateUI();
+  save();
+  alert(`Site name set to: ${state.siteName} (this only updates the in-game display)`);
+});
+
+function init(){
+  drawPixelCookie();
+  load();
+  state.cookieMaxHP = state.cookieMaxHP || 100;
+  state.cookieHP = state.cookieHP || state.cookieMaxHP;
+  buildShop();
+  updateUI();
+  animate();
+  requestAnimationFrame(autoTick);
+}
+init();
+setInterval(save,10000);
+</script>
 </body>
 </html>
